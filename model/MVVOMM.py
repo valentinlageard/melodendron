@@ -29,12 +29,17 @@ class MVVOMM:
 
     def insert(self, state: Dict[str, Any], context_states: List[Dict[str, Any]]):
         """Inserts a new state into the sequence and updates the VOMMs."""
+        state['id'] = len(self.state_sequence)
         self.state_sequence.append(state)
         continuation_idx = len(self.state_sequence) - 1
         for viewpoint in self.viewpoints:
             vomm = self.vomms[viewpoint]
             context_values = [state[viewpoint] for state in context_states]
             vomm.insert(continuation_idx, context_values)
+
+    def insert_sequence(self, state_sequence, max_order=8):
+        for i, state in enumerate(state_sequence):
+            self.insert(state, state_sequence[i - max_order:i])
 
     def next(self, context_states: List[Dict[str, Any]],
              selector: Callable[[Dict[str: Set[Any]]], int | None]) -> Dict[str, Any]:

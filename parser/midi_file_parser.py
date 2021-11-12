@@ -72,7 +72,8 @@ def midi_track_to_states(track: mido.MidiTrack):
                 state['total_duration'] = delta_accum
                 sequence.append(state)
                 delta_accum = 0
-                state = dict(pitches=set(), note_events=list(), on_duration=None, off_duration=None, total_duration=None)
+                state = dict(pitches=set(), note_events=list(),
+                             on_duration=None, off_duration=None, total_duration=None)
             # Create a new note event and add it to the current state
             note_event = dict(pitch=msg.note, velocity=msg.velocity, start_delta=delta_accum, end_delta=None)
             state['pitches'].add(msg.note)
@@ -87,6 +88,9 @@ def midi_track_to_states(track: mido.MidiTrack):
             if all(note_event['end_delta'] is not None for note_event in state['note_events']):
                 state['on_duration'] = delta_accum
     return sequence
+    #TODO: Add support for a legato delay.
+    #TODO: Rewrite as a generator function
+    #TODO: Clustering bug: Instead of iterating, msg per msg, iterate per cluster of simultaneous msgs
 
 
 def states_to_midi_track(states):
@@ -123,22 +127,40 @@ class MidiFileParser():
     def __init__(self, filepath):
         self.filepath = filepath
         self.midi_file = mido.MidiFile(filepath)
-        self.sequences = []
-        for track in self.midi_file.tracks:
-            self.sequences.append(midi_track_to_states(track))
         self.time_signature = self._find_time_signature()
-        # self.tempo = self._find_tempo()
+        self.tempo = self._find_tempo()
 
     def _find_time_signature(self):
+        """Search for a time signature in the file.
+        Defaults to 4/4 if none found."""
         for track in self.midi_file.tracks:
             for msg in track:
                 if msg.type == 'time_signature':
                     return msg.numerator, msg.denominator
         return 4, 4
 
-    # def _find_tempo(self):
-    #     for track in self.midi_file.tracks:
-    #         for msg in track:
-    #             if msg.type == ''
+    def _find_tempo(self):
+        """Search for a tempo and returns it or none."""
+        for track in self.midi_file.tracks:
+            for msg in track:
+                if msg.type == 'set_tempo':
+                    return mido.bpm2tempo(msg.tempo)
+        return None
+
+    def get_states_from_tracks(self, track_idxs):
+        """Convert midi track to states.
+        If several midi tracks are queried, they are merged before conversion."""
+        tracks = [self.midi_file.tracks[idx] for idx in track_idxs]
+        merged_track = mido.merge_tracks(tracks)
+        return midi_track_to_states(merged_track)
+
+    def __str__(self):
+        first_line = 'File {}: ({}/{}, {} BPM)'.format(self.filepath,
+                                                      self.time_signature[0], self.time_signature[1],
+                                                      self.tempo)
+        track_lines = ['\tTrack {}: {} ({} messages)'.format(i, track.name, len(track))
+                       for i, track in enumerate(self.midi_file.tracks)]
+        return '\n'.join((first_line, *track_lines))
+
 
 __all__ = ['MidiFileParser', 'states_to_midi_track']

@@ -2,8 +2,11 @@ from __future__ import annotations
 from typing import Dict, Set, Any
 import random
 
-"""Selectors.
-Selectors functions used by the model to select a continuation index among possible continuation indexes."""
+
+"""
+Selectors.
+Selectors functions used by the model to select a continuation index among possible continuation indexes.
+"""
 
 
 def random_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> int | None:
@@ -31,6 +34,9 @@ def intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> in
     str_format = '{} was selected among {}'.format(state_selected, continuation_idxs_intersection)
     print(str_format)
     return state_selected
+
+
+#TODO: Hierarchical select
 
 
 __all__ = ['random_select', 'intersect_select']
