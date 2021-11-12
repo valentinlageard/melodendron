@@ -8,7 +8,7 @@ model = MVVOMM(viewpoints)
 selector = random_select
 
 # Open a midi file
-midi_file_parser = MidiFileParser('../midi/chpn_op27_2.mid')
+midi_file_parser = MidiFileParser('midi/chpn_op27_2.mid')
 print(midi_file_parser)
 
 # Merge track 1 and 2 and convert them to a state sequence
