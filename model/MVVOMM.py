@@ -59,7 +59,14 @@ class MVVOMM:
         return self.state_sequence[selected_continuation_idx]
         # Should the algorithm use the depth traversed in order to bias for longer depth ?
 
-    def random_states(self, n=5):
+    def random_states(self, n=8):
         """Returns a random sample of n states taken from the internal sequence."""
         return random.sample(self.state_sequence, n)
+
+    def generate_n(self, n, selector, order=8):
+        new_sequence = self.random_states(order)
+        for i in range(order, n):
+            new_state = self.next(new_sequence[i - order:i], selector)
+            new_sequence.append(new_state)
+        return new_sequence
 
