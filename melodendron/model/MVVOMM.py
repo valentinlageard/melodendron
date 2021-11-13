@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import List, Any, Dict, Callable, Set
-from model.VOMM import VOMM
+from melodendron.model.VOMM import VOMM
 import random
 
 

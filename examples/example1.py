@@ -1,6 +1,6 @@
 import mido
-from model import MVVOMM, random_select, intersect_select, plagiarism
-from parser import MidiFileParser, states_to_midi_track
+from melodendron import MVVOMM, random_select, intersect_select, plagiarism
+from melodendron import MidiFileParser, states_to_midi_track
 
 # Select viewpoints, create model and choose a selector function
 viewpoints = ['pitches', 'on_duration']
