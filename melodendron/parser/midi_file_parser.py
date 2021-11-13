@@ -2,6 +2,24 @@ import mido
 import itertools
 import queue
 
+
+def simultaneous_msgs(track: mido.MidiTrack):
+    """A generator yielding all simultaneous midi messages."""
+    delta = None
+    msgs = list()
+    for msg in track:
+        if delta is None:
+            delta = msg.time
+            msgs.append(msg)
+        elif msg.time == 0:
+            msgs.append(msg)
+        else:
+            yield msgs
+            delta = msg.time
+            msgs = [msg]
+    yield msgs
+
+
 def drop_non_note_messages(track: mido.MidiTrack) -> mido.MidiTrack:
     """Returns a new midi track with only note on/off messages while keeping timing intact."""
     new_track = mido.MidiTrack()
@@ -27,34 +45,27 @@ def convert_zero_velocity_messages_to_note_off(track: mido.MidiTrack) -> mido.Mi
             new_track.append(msg)
     return new_track
 
-def prioritize_note_offs(track: mido.MidiTrack) -> mido.MidiTrack:
+
+def prioritize_note_offs(track):
+    """Returns a new midi track where note offs are placed first. This is needed for the parsing."""
     new_track = mido.MidiTrack()
-    to_ignore = 0
-    for i, msg in enumerate(track):
-        if msg.type == 'note_on':
-            for j, msg2 in enumerate(track[i+1:]):
-                if msg2.type == 'note_off' and msg2.time == 0:
-                    time = msg.time if j == 0 else 0
-                    new_msg = mido.Message('note_off', note=msg2.note, channel=msg2.channel, velocity=0, time=time)
-                    new_track.append(new_msg)
-                    to_ignore += 1
-                else:
-                    break
-            time = 0 if to_ignore != 0 else msg.time
-            new_msg = mido.Message('note_on', note=msg.note, channel=msg.channel, velocity=msg.velocity, time=time)
-            new_track.append(new_msg)
-        if msg.type == 'note_off':
-            if to_ignore > 0:
-                to_ignore -= 1
-            else:
-                new_msg = mido.Message('note_off', note=msg.note, channel=msg.channel, velocity=0, time=msg.time)
-                new_track.append(new_msg)
+    for msgs in simultaneous_msgs(track):
+        delta = msgs[0].time
+        msgs[0].time = 0
+        note_offs = [msg for msg in msgs if msg.type == 'note_off']
+        note_ons = [msg for msg in msgs if msg.type == 'note_on']
+        if note_offs:
+            note_offs[0].time = delta
+        else:
+            note_ons[0].time = delta
+        new_track.extend(note_offs + note_ons)
     return new_track
 
 
 def midi_track_to_states(track: mido.MidiTrack):
     """Converts a mido Miditrack into a state sequence usable by the MVVOMM."""
-    track = convert_zero_velocity_messages_to_note_off(drop_non_note_messages(track))
+    track = drop_non_note_messages(track)
+    track = convert_zero_velocity_messages_to_note_off(track)
     track = prioritize_note_offs(track)
 
     sequence = list()
@@ -87,10 +98,12 @@ def midi_track_to_states(track: mido.MidiTrack):
             # If all note_events have finished, set the on_duration of the current state
             if all(note_event['end_delta'] is not None for note_event in state['note_events']):
                 state['on_duration'] = delta_accum
+    state['off_duration'] = 0
+    state['total_duration'] = state['on_duration']
+    sequence.append(state)
     return sequence
     #TODO: Add support for a legato delay.
     #TODO: Rewrite as a generator function
-    #TODO: Clustering bug: Instead of iterating, msg per msg, iterate per cluster of simultaneous msgs
 
 
 def states_to_midi_track(states):
