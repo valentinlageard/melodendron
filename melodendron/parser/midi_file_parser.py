@@ -1,6 +1,7 @@
 import mido
 import itertools
 import queue
+from .utils import add_dynamic
 
 
 def simultaneous_msgs(track: mido.MidiTrack):
@@ -160,12 +161,15 @@ class MidiFileParser():
                     return mido.bpm2tempo(msg.tempo)
         return None
 
-    def get_states_from_tracks(self, track_idxs):
+    def get_states_from_tracks(self, track_idxs, with_dynamic=True):
         """Convert midi track to states.
         If several midi tracks are queried, they are merged before conversion."""
         tracks = [self.midi_file.tracks[idx] for idx in track_idxs]
         merged_track = mido.merge_tracks(tracks)
-        return midi_track_to_states(merged_track)
+        sequence = midi_track_to_states(merged_track)
+        if with_dynamic:
+            add_dynamic(sequence)
+        return sequence
 
     def __str__(self):
         first_line = 'File {}: ({}/{}, {} BPM)'.format(self.filepath,
