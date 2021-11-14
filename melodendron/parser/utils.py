@@ -1,22 +1,12 @@
 import statistics
 
-def add_dynamic(sequence):
-    for state in sequence:
-        mean_velocity = statistics.mean([note_event['velocity'] for note_event in state['note_events']])
-        if mean_velocity <= 16:
-            state['dynamic'] = 'ppp'
-        elif 16 < mean_velocity <= 32:
-            state['dynamic'] = 'pp'
-        elif 32 < mean_velocity <= 48:
-            state['dynamic'] = 'p'
-        elif 48 < mean_velocity <= 64:
-            state['dynamic'] = 'mp'
-        elif 64 < mean_velocity <= 80:
-            state['dynamic'] = 'mf'
-        elif 80 < mean_velocity <= 96:
-            state['dynamic'] = 'f'
-        elif 96 < mean_velocity <= 112:
-            state['dynamic'] = 'ff'
-        elif 112 < mean_velocity <= 127:
-            state['dynamic'] = 'fff'
-    return sequence
+
+def print_sequence_infos(state_sequence):
+    print("Sequence length: {}".format(len(state_sequence)))
+    note_events_numbers = [len(state['note_events']) for state in state_sequence]
+    print("Highest number of note events: {}".format(max(note_events_numbers)))
+    print("Mean number of note events per state: {}".format(round(statistics.mean(note_events_numbers), 2)))
+    print("Median number of note events per state: {}".format(round(statistics.median(note_events_numbers), 2)))
+
+
+__all__ = ['print_sequence_infos']

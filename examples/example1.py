@@ -1,6 +1,6 @@
 import mido
 from melodendron import MVVOMM, random_select, intersect_select, weighted_intersect_select, exp_weighted_intersect_select
-from melodendron import print_plagiarism_infos
+from melodendron import print_plagiarism_infos, print_sequence_infos
 from melodendron import MidiFileParser, states_to_midi_track
 from functools import partial
 
@@ -19,13 +19,13 @@ print(midi_file_parser)
 
 # Merge track 1 and 2 (left and right piano) and convert them to a state sequence
 state_sequence = midi_file_parser.get_states_from_tracks([1, 2])
+print_sequence_infos(state_sequence)
 
 # Feed the state sequence to the model
 model.insert_sequence(state_sequence, max_order=8)
 
 # Generate a new sequence from model: 200 states with order 5
-new_sequence = model.generate_n(200, selector=selector, order=5)
-
+new_sequence = model.generate_n(2000, selector=selector, order=5)
 print_plagiarism_infos(new_sequence)
 
 # Export the sequence to a output.mid file in midi directory

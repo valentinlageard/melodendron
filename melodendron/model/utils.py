@@ -26,7 +26,7 @@ def get_plagiarism_infos(state_sequence):
 
 def print_plagiarism_infos(state_sequence):
     infos = get_plagiarism_infos(state_sequence)
-    print('Plagiarism proportion: {}%'.format(round(infos[0], 2) * 100))
+    print('Plagiarism proportion: {}%'.format(round(infos[0] * 100, 2)))
     print('Longest plagiarism: {}'.format(round(infos[1], 2)))
     print('Mean plagiarism length: {}'.format(round(infos[2], 2)))
     print('Median plagiarism length: {}'.format(round(infos[3], 2)))

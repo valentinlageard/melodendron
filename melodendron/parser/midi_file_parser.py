@@ -1,7 +1,7 @@
 import mido
 import itertools
 import queue
-from .utils import add_dynamic
+from .reduction_functions import add_dynamic
 
 
 def simultaneous_msgs(track: mido.MidiTrack):
@@ -47,7 +47,7 @@ def convert_zero_velocity_messages_to_note_off(track: mido.MidiTrack) -> mido.Mi
     return new_track
 
 
-def prioritize_note_offs(track):
+def prioritize_note_offs(track: mido.MidiTrack) -> mido.MidiTrack:
     """Returns a new midi track where note offs are placed first. This is needed for the parsing."""
     new_track = mido.MidiTrack()
     for msgs in simultaneous_msgs(track):
@@ -107,6 +107,7 @@ def midi_track_to_states(track: mido.MidiTrack):
     return sequence
     #TODO: Add support for a legato delay.
     #TODO: Rewrite as a generator function
+    #TODO: Add support for tempo changes, key and time signature changes, ...
 
 
 def states_to_midi_track(states):
@@ -145,6 +146,7 @@ class MidiFileParser():
         self.midi_file = mido.MidiFile(filepath)
         self.time_signature = self._find_time_signature()
         self.tempo = self._find_tempo()
+        self.ticks_per_beat = self.midi_file.ticks_per_beat
 
     def _find_time_signature(self):
         """Search for a time signature in the file.
@@ -174,9 +176,9 @@ class MidiFileParser():
         return sequence
 
     def __str__(self):
-        first_line = 'File {}: ({}/{}, {} BPM)'.format(self.filepath,
+        first_line = 'File {}: ({}/{}, {} BPM, {} TPB)'.format(self.filepath,
                                                       self.time_signature[0], self.time_signature[1],
-                                                      self.tempo)
+                                                      self.tempo, self.ticks_per_beat)
         track_lines = ['\tTrack {}: {} ({} messages)'.format(i, track.name, len(track))
                        for i, track in enumerate(self.midi_file.tracks)]
         return '\n'.join((first_line, *track_lines))
