@@ -65,6 +65,8 @@ def prioritize_note_offs(track):
 
 def midi_track_to_states(track: mido.MidiTrack):
     """Converts a mido Miditrack into a state sequence usable by the MVVOMM."""
+
+    # "Clean" the midi track
     track = drop_non_note_messages(track)
     track = convert_zero_velocity_messages_to_note_off(track)
     track = prioritize_note_offs(track)

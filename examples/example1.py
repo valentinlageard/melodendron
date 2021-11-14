@@ -1,11 +1,17 @@
 import mido
-from melodendron import MVVOMM, random_select, intersect_select, plagiarism
+from melodendron import MVVOMM, random_select, intersect_select, weighted_intersect_select, exp_weighted_intersect_select
+from melodendron import print_plagiarism_infos
 from melodendron import MidiFileParser, states_to_midi_track
+from functools import partial
 
-# Select viewpoints, create model and choose a selector function
-viewpoints = ['pitches', 'on_duration', 'dynamic']
+# Select viewpoints used by the model and create the model
+viewpoints = ['pitches', 'total_duration', 'dynamic']
 model = MVVOMM(viewpoints)
-selector = intersect_select
+# Uncomment to test various selectors
+#selector = random_select
+#selector = intersect_select
+#selector = weighted_intersect_select
+selector = partial(exp_weighted_intersect_select, factor=1.2)  # Passed as a partial to set the exponential factor
 
 # Open a midi file
 midi_file_parser = MidiFileParser('midi/chpn_op27_2.mid')
@@ -17,14 +23,10 @@ state_sequence = midi_file_parser.get_states_from_tracks([1, 2])
 # Feed the state sequence to the model
 model.insert_sequence(state_sequence, max_order=8)
 
-for i, state in enumerate(model.state_sequence):
-    print(i, state)
+# Generate a new sequence from model: 200 states with order 5
+new_sequence = model.generate_n(200, selector=selector, order=5)
 
-# Generate a new sequence from model: 200 states with order 3
-new_sequence = model.generate_n(200, selector=selector, order=1)
-
-# Print the plagiarism proportion of the new_sequence
-print('Plagiarism: {}%'.format(plagiarism(new_sequence) * 100))
+print_plagiarism_infos(new_sequence)
 
 # Export the sequence to a output.mid file in midi directory
 new_file = mido.MidiFile()
