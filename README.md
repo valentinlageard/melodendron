@@ -28,6 +28,7 @@ Model:
 - Better metrics.
 - Real time learning.
 - Real time generation.
+- Saving and loading of models.
 
 ## Examples
 

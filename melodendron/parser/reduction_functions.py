@@ -1,5 +1,12 @@
 import statistics
 
+
+def add_viewpoint_for_all(sequence, viewpoint, value):
+    for state in sequence:
+        state[viewpoint] = value
+    return sequence
+
+
 def add_dynamic(sequence):
     for state in sequence:
         mean_velocity = statistics.mean([note_event['velocity'] for note_event in state['note_events']])
@@ -20,3 +27,6 @@ def add_dynamic(sequence):
         elif 112 < mean_velocity <= 127:
             state['dynamic'] = 'fff'
     return sequence
+
+
+__all__ = ['add_viewpoint_for_all', 'add_dynamic']
