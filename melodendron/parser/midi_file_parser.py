@@ -2,16 +2,19 @@ import mido
 import itertools
 import queue
 from .reduction_functions import *
-from .utils import convert_zero_velocity_messages_to_note_off, drop_non_note_messages, \
-    prioritize_note_offs
+from .utils import force_note_off, keep_only_messages_by_type, prioritize_note_offs
 
 
-def midi_track_to_states(track: mido.MidiTrack):
+def delta_to_beat(delta, ticks_per_beat):
+    return round(delta / ticks_per_beat, 6)
+
+
+def midi_track_to_states(track: mido.MidiTrack, ticks_per_beat):
     """Converts a mido Miditrack into a state sequence usable by the MVVOMM."""
 
     # "Clean" the midi track
-    track = drop_non_note_messages(track)
-    track = convert_zero_velocity_messages_to_note_off(track)
+    track = keep_only_messages_by_type(track, ['note_on', 'note_off'])
+    track = force_note_off(track)
     track = prioritize_note_offs(track)
 
     sequence = list()
@@ -25,14 +28,15 @@ def midi_track_to_states(track: mido.MidiTrack):
             # If the current state has all note events finished, finish completing it, append it to the sequence and
             # generate a new empty state.
             if all(note_event['end_delta'] is not None for note_event in state['note_events']) and i != 0:
-                state["off_duration"] = delta_accum - state['on_duration']
-                state['total_duration'] = delta_accum
+                state["off_duration"] = delta_to_beat(delta_accum, ticks_per_beat) - state['on_duration']
+                state['total_duration'] = delta_to_beat(delta_accum, ticks_per_beat)
                 sequence.append(state)
                 delta_accum = 0
                 state = dict(pitches=set(), note_events=list(),
                              on_duration=None, off_duration=None, total_duration=None)
             # Create a new note event and add it to the current state
-            note_event = dict(pitch=msg.note, velocity=msg.velocity, start_delta=delta_accum, end_delta=None)
+            note_event = dict(pitch=msg.note, velocity=msg.velocity,
+                              start_delta=delta_to_beat(delta_accum, ticks_per_beat), end_delta=None)
             state['pitches'].add(msg.note)
             state['note_events'].append(note_event)
         if msg.type == 'note_off':
@@ -40,10 +44,10 @@ def midi_track_to_states(track: mido.MidiTrack):
             matching_note_event = next((note_event for note_event in state['note_events']
                                         if note_event['pitch'] == msg.note and note_event['end_delta'] is None), None)
             if matching_note_event is not None:
-                matching_note_event['end_delta'] = delta_accum
+                matching_note_event['end_delta'] = delta_to_beat(delta_accum, ticks_per_beat)
             # If all note_events have finished, set the on_duration of the current state
             if all(note_event['end_delta'] is not None for note_event in state['note_events']):
-                state['on_duration'] = delta_accum
+                state['on_duration'] = delta_to_beat(delta_accum, ticks_per_beat)
     state['off_duration'] = 0
     state['total_duration'] = state['on_duration']
     sequence.append(state)
@@ -53,7 +57,7 @@ def midi_track_to_states(track: mido.MidiTrack):
     #TODO: Add support for tempo changes, key and time signature changes, ...
 
 
-def states_to_midi_track(states):
+def states_to_midi_track(states, ticks_per_beat):
     midi_track = mido.MidiTrack()
     last_end_delta = 0
     for state in states:
@@ -64,13 +68,13 @@ def states_to_midi_track(states):
             velocity = note_event['velocity']
             start_delta = note_event['start_delta']
             end_delta = note_event['end_delta']
-            on_message = mido.Message('note_on', note=pitch, velocity=velocity, time=start_delta)
-            off_message = mido.Message('note_off', note=pitch, velocity=0, time=end_delta)
+            on_message = mido.Message('note_on', note=pitch, velocity=velocity, time=int(start_delta * ticks_per_beat))
+            off_message = mido.Message('note_off', note=pitch, velocity=0, time=int(end_delta * ticks_per_beat))
             priority_queue.put((start_delta, next(unique), on_message))
             priority_queue.put((end_delta, next(unique), off_message))
         priority, count, first_msg = priority_queue.get()
         previous_time = first_msg.time
-        first_msg.time = last_end_delta
+        first_msg.time = int(last_end_delta * ticks_per_beat)
         midi_track.append(first_msg)
         while not priority_queue.empty():
             priority, count, msg = priority_queue.get()
@@ -117,25 +121,22 @@ class MidiFileParser():
                     return msg.key
         return None
 
-    def get_states_from_tracks(self, track_idxs, with_dynamic=True, with_time_signature=True, with_key_signature=True):
+    def get_states_from_tracks(self, track_idxs):
         """Convert midi track to states.
         If several midi tracks are queried, they are merged before conversion."""
         tracks = [self.midi_file.tracks[idx] for idx in track_idxs]
         merged_track = mido.merge_tracks(tracks)
-        sequence = midi_track_to_states(merged_track)
-        if with_dynamic:
-            add_dynamic(sequence)
-        if with_time_signature:
-            add_viewpoint_for_all(sequence, 'time_signature', self.time_signature)
-        if with_key_signature:
-            add_viewpoint_for_all(sequence, 'key_signature', self.key_signature)
+        sequence = midi_track_to_states(merged_track, self.ticks_per_beat)
+        add_derived_viewpoint(sequence, 'dynamic', reduce_dynamic)
+        add_viewpoint_for_all(sequence, 'time_signature', self.time_signature)
+        add_viewpoint_for_all(sequence, 'key_signature', self.key_signature)
 
         return sequence
 
     def __str__(self):
         first_line = 'File {}: ({}/{}, {} BPM, {} TPB)'.format(self.filepath,
-                                                      self.time_signature[0], self.time_signature[1],
-                                                      self.tempo, self.ticks_per_beat)
+                                                               self.time_signature[0], self.time_signature[1],
+                                                               self.tempo, self.ticks_per_beat)
         track_lines = ['\tTrack {}: {} ({} messages)'.format(i, track.name, len(track))
                        for i, track in enumerate(self.midi_file.tracks)]
         return '\n'.join((first_line, *track_lines))

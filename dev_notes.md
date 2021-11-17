@@ -64,4 +64,7 @@ TODO: Additional functions are implemented to enrich states with derived propert
 - For trivial monophonic case, you easily compare equal or different.
 - For polyphonic cases, we can compare strictly equal (all notes are presents) or per degree (how many notes are present).
 
+**Changing key_signature and time_signature:** How to manage changes in key_signature and time_signature during the piece ?
+- Clean tracks containing such changes, merge them and prioritize the meta messages.
+
 TODO: There is an error in current clustering algorithm.

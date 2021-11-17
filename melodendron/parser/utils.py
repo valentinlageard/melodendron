@@ -1,4 +1,6 @@
 import statistics
+from typing import List
+
 import mido
 
 
@@ -27,12 +29,11 @@ def simultaneous_msgs(track: mido.MidiTrack):
     yield msgs
 
 
-def drop_non_note_messages(track: mido.MidiTrack) -> mido.MidiTrack:
-    """Returns a new midi track with only note on/off messages while keeping timing intact."""
+def keep_only_messages_by_type(track: mido.MidiTrack, types: List[str]) -> mido.MidiTrack:
     new_track = mido.MidiTrack()
     delta_accum = 0
     for msg in track:
-        if msg.type in ['note_on', 'note_off']:
+        if msg.type in types:
             msg.time += delta_accum
             new_track.append(msg)
             delta_accum = 0
@@ -41,7 +42,7 @@ def drop_non_note_messages(track: mido.MidiTrack) -> mido.MidiTrack:
     return new_track
 
 
-def convert_zero_velocity_messages_to_note_off(track: mido.MidiTrack) -> mido.MidiTrack:
+def force_note_off(track: mido.MidiTrack) -> mido.MidiTrack:
     """Returns a new midi track with 0 velocity note on message converted to note off."""
     new_track = mido.MidiTrack()
     for msg in track:
@@ -69,5 +70,5 @@ def prioritize_note_offs(track: mido.MidiTrack) -> mido.MidiTrack:
     return new_track
 
 
-__all__ = ['print_sequence_infos', 'simultaneous_msgs', 'drop_non_note_messages',
-           'convert_zero_velocity_messages_to_note_off', 'prioritize_note_offs']
+__all__ = ['print_sequence_infos', 'simultaneous_msgs', 'keep_only_messages_by_type',
+           'force_note_off', 'prioritize_note_offs']

@@ -10,7 +10,7 @@ Selectors functions used by the model to select a continuation index among possi
 """
 
 
-def random_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> int | None:
+def random_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]], verbose=False) -> int | None:
     """Returns a continuation index by randomly selecting in all continuation indexes."""
     all_continuation_idxs = list()
     for continuation_idxs in continuation_idxs_by_viewpoints.values():
@@ -19,12 +19,13 @@ def random_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> int |
     if not all_continuation_idxs:
         return None
     state_selected = random.choice(all_continuation_idxs)
-    str_format = '{} was selected among {}'.format(state_selected, all_continuation_idxs)
-    print(str_format)
+    if verbose:
+        str_format = '{} was selected among {}'.format(state_selected, all_continuation_idxs)
+        print(str_format)
     return state_selected
 
 
-def intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> int | None:
+def intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]], verbose=False) -> int | None:
     """Returns a continuation index by randomly selecting in continuation indexes present in all viewpoints."""
     all_continuation_idxs = (continuation_idxs for continuation_idxs in continuation_idxs_by_viewpoints.values()
                              if continuation_idxs is not None)
@@ -32,11 +33,12 @@ def intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> in
     if not continuation_idxs_intersection:
         return None
     state_selected = random.choice(list(continuation_idxs_intersection))
-    str_format = '{} was selected among {}'.format(state_selected, continuation_idxs_intersection)
-    print(str_format)
+    if verbose:
+        str_format = '{} was selected among {}'.format(state_selected, continuation_idxs_intersection)
+        print(str_format)
     return state_selected
 
-def weighted_intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]]) -> int | None:
+def weighted_intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]], verbose=False) -> int | None:
     """Returns a continuation index by assigning a weight to each continuation index and randomly selecting using the
     weights.
     weight = sum(1 / len(continuation_idxs)) for viewpoints if continuation_idx in viewpoint
@@ -53,11 +55,13 @@ def weighted_intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any
         return None
     state_selected = random.choices(list(all_weighted_continuation_idxs.keys()),
                                     list(all_weighted_continuation_idxs.values()))[0]
-    str_format = '{} was selected among {}'.format(state_selected, all_weighted_continuation_idxs)
-    print(str_format)
+    if verbose:
+        str_format = '{} was selected among {}'.format(state_selected, all_weighted_continuation_idxs)
+        print(str_format)
     return state_selected
 
-def exp_weighted_intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]], factor=1) -> int | None:
+def exp_weighted_intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set[Any]],
+                                  factor=1, verbose=False) -> int | None:
     """Similar to weighted_intersect_select except that an exponential factor is given to increase relative
     weighting."""
     all_weighted_continuation_idxs = dict()
@@ -74,8 +78,9 @@ def exp_weighted_intersect_select(continuation_idxs_by_viewpoints: Dict[str: Set
         return None
     state_selected = random.choices(list(all_weighted_continuation_idxs.keys()),
                                     list(all_weighted_continuation_idxs.values()))[0]
-    str_format = '{} was selected among {}'.format(state_selected, all_weighted_continuation_idxs)
-    print(str_format)
+    if verbose:
+        str_format = '{} was selected among {}'.format(state_selected, all_weighted_continuation_idxs)
+        print(str_format)
     return state_selected
 
 
