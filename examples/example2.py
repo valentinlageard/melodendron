@@ -28,6 +28,6 @@ new_file = mido.MidiFile()
 new_file.ticks_per_beat = midi_file_parser.midi_file.ticks_per_beat
 new_file.tracks.append(mido.MidiTrack())
 new_file.tracks[0].extend(midi_file_parser.midi_file.tracks[0][3:6])
-new_track = states_to_midi_track(new_sequence)
+new_track = states_to_midi_track(new_sequence, ticks_per_beat=midi_file_parser.ticks_per_beat)
 new_file.tracks.append(new_track)
 new_file.save("midi/output.mid")
