@@ -21,6 +21,7 @@ Parsing:
 - Real-time parser.
 - Legato tolerant parsing.
 - Support for key and time signatures changes.
+- Support for dynamic key detection.
 
 Model:
 
